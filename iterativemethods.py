@@ -34,13 +34,13 @@ Date: 2023-05-07
 import graphrelations as gr
 import numpy as np
 import numpy.linalg as npla
-from numpy import zeros_like, sum
+from numpy import zeros, sum
 import scipy.sparse.linalg as la
 from scipy.sparse import triu, tril, csr_matrix, eye, diags
 
 
 # wrapper function to call in main code
-def stationary_it_method(Adj, b, M, x0=np.zeros(1), max_iter=1000, epsilon=1e-6):
+def stationary_it_method(Adj, b, M, x0=0, max_iter=1000, epsilon=1e-6):
     """
     using a modified graph Laplacian matrix A of adjacency matrix Adj and a
     smoothing matrix operator M,
@@ -61,11 +61,13 @@ def stationary_it_method(Adj, b, M, x0=np.zeros(1), max_iter=1000, epsilon=1e-6)
     delta_0 (norm of initial residual),
     and delta (norm of final residual)
     """
-    A = gr.Laplacian(Adj) + 0.001 * eye(Adj.shape[0])
-    if x0.all == 0:
-        x0 = zeros_like(b)  # ok because A is symmetric matrix
+    #uncomment to build the special laplacian from hw 2 first
+    # A = gr.Laplacian(Adj) + 0.001 * eye(Adj.shape[0])
 
-    return M(A, b, x0, max_iter, epsilon)
+    if x0 == 0:
+        x0 = zeros(Adj.shape[1])
+
+    return M(Adj, b, x0, max_iter, epsilon)
 
 
 # below are the iterative smoothers to pass as M to stationary_it_method:
@@ -77,10 +79,9 @@ def bgs(A, b, guess, max_iter=1000, epsilon=1e-6):
     x = guess.copy()
     r = b - A @ x  # this is the error vector b-Ax
     delta_0 = delta = npla.norm(r)  # size of the error vector
-    print(delta_0)
     curr_iter = 0
 
-    while curr_iter <= max_iter:
+    while curr_iter < max_iter:
         if delta <= epsilon * delta_0:  # if this is true, the error is
             # sufficiently small, so we stop.
             return x, curr_iter, delta_0, delta
@@ -88,7 +89,6 @@ def bgs(A, b, guess, max_iter=1000, epsilon=1e-6):
         x += la.spsolve_triangular(upper, r, lower=False)
         r = b - A @ x
         delta = npla.norm(r)
-        print(delta)
         curr_iter += 1
 
     return x, curr_iter-1, delta_0, delta
@@ -101,7 +101,7 @@ def fgs(A, b, guess, max_iter=1000, epsilon=1e-6):
     delta_0 = delta = npla.norm(r)  # size of the error vector
     curr_iter = 0
 
-    while curr_iter <= max_iter:
+    while curr_iter < max_iter:
         if delta <= epsilon * delta_0:  # if this is true, the error is
             # sufficiently small, so we stop.
             return x, curr_iter, delta_0, delta
@@ -123,7 +123,7 @@ def sgs(A, b, guess, max_iter=1000, epsilon=1e-6):
     delta_0 = delta = npla.norm(r)  # size of the error vector
     curr_iter = 0
 
-    while curr_iter <= max_iter:
+    while curr_iter < max_iter:
         if delta <= epsilon * delta_0:  # if this is true, the error is
             # sufficiently small, so we stop.
             return x, curr_iter, delta_0, delta
@@ -146,7 +146,7 @@ def L_1(A, b, guess, max_iter=1000, epsilon=1e-6):
     delta_0 = delta = npla.norm(r)  # size of the error vector
     curr_iter = 0
 
-    while curr_iter <= max_iter:
+    while curr_iter < max_iter:
         if delta <= epsilon * delta_0:  # if this is true, the error is
             # sufficiently small, so we stop.
             return x, curr_iter, delta_0, delta

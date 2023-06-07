@@ -11,18 +11,17 @@ so we should use that. do I need to recompute this at each step?
 def P_coarse(A, c_factor=1.25, edge_weights=np.zeros(1),
              modularity_weights=False):
     """
-    Wrapper function for recursive P_coarse_inner
+    Wrapper function for recursive coarsening and aggregation of an adjacendy
+        graph A
 
     :param A: (csr_matrix): Adjacency Matrix in csr format
     :param edge_weights: list of weights which correspond to the individual
-    edges
+        edges
     :param c_factor: The coarsening factor (the ratio of the number of
-    original vertices
-    divided by the number of the resulting coarse graph).
+        original vertices divided by the number of the resulting coarse graph).
 
-    :return: 2 things from recursive inner function: composition of P's in
-    coarse vertex_agg relation, AND A_coarse, the aggregate_aggregate coarse
-    graph relation.
+    :return: 2 things: P_coarse, the composition of Pn coarse vert_agg relations
+            , AND A_coarse, the aggregate_aggregate coarse graph relation.
     """
 
     num_verts0 = A.shape[0]
@@ -51,26 +50,18 @@ def P_coarse(A, c_factor=1.25, edge_weights=np.zeros(1),
 # calculate modularity weights for each Ac
 def P_coarse_inner(A, P, nc_stop):
     """
+    Inner recursive function for coarsening A till the coarsening factor is
+        reached
 
     :param A: (csr_matrix): Adjacency Matrix in CSR format
     :param P: vertex_aggregate relation matrix in CSR format
-    :param edge_weights: array of weights corresponding to each edge
     :param nc_stop: The original number of vertices divided by the coarsening
-    factor (the ratio of the number of original vertices divided by the
-    number of the resulting coarse graph).
-            When number of vertices in A_coarse is larger than nc_stop, it is
-            time to stop the recursion and return.
+        factor (the ratio of the number of original vertices divided by the
+        number of the resulting coarse graph).
+        When number of vertices in A_coarse is larger than nc_stop, it is
+        time to stop the recursion and return.
 
-    :return 2 things: composition of P's in coarse vertex_agg relation,
-            and A_coarse, the aggregate_aggregate coarse graph relation.
-
-    lubys A -> P
-    A2 = P^T A P
-    if cfactor thing return P
-    else do it again with A2,
-    in the end return the composite of the P's
-    now you have Phat
-
+    :return P: composition of P's in coarse vertex_agg relation
     """
     Ac = P.T @ A @ P
     num_verts = Ac.shape[0]
@@ -100,7 +91,10 @@ def luby(edge_edge, weights=np.zeros(1)):
     for edge in range(0, edge_edge.shape[0]):
         neighbors = edge_edge.getrow(edge).indices
         if (not any(x in maxedges for x in neighbors)) and (weights[
-            edge] == np.amax(weights[neighbors])):
+                                                                edge] ==
+                                                            np.amax(
+                                                                weights[
+                                                                    neighbors])):
             maxedges.extend([edge])
     return maxedges
 
@@ -110,6 +104,7 @@ def vert_agg(max_edges, edge_vertex):
     Build a coarsened vertex_aggregate relation matrix from a maximal edge
     matching list and edge_vertex
     relation
+
     :param max_edges: list of edges from an edge matching algorithm
     :param edge_vertex: edge_vertex relation matrix of a graph
     :return: vertex_aggregate relation matrix in CSR format
@@ -146,42 +141,3 @@ def vert_agg(max_edges, edge_vertex):
             num_aggregates += 1
 
     return csr((data, (rows, cols)), shape=(num_verts, num_aggregates))
-
-
-'''
-def P_coarse(A, edge_weights, c_factor=1.25):
-    """
-
-    :param A: (csr_matrix): Adjacency Matrix in csr format
-    :param edge_weights: list of weights which correspond to the individual
-    edges
-    :param c_factor: The coarsening factor (the ratio of the number of
-    original vertices divided by the number of the resulting coarse graph).
-
-    :return 2 things: composition of P's in coarse vertex_agg relation,
-            and aggregate_aggregate coarse graph relation
-    lubys A -> P
-    A2 = P^T A P
-    if cfactor thing return P
-    else do it again with A2,
-    in the end return the composite of the P's
-    now you have Phat
-    """
-    edge_vertex = EV(A)
-    edge_edge = EE(edge_vertex)
-    num_verts0 = edge_vertex.shape[1]
-    num_verts = 1
-    P = 0
-
-    while num_verts0 / num_verts > c_factor:
-        max_edges = luby(edge_edge, edge_weights)
-        P = (vert_agg(max_edges, edge_vertex)) if not P else (
-            hstack(P, vert_agg(max_edges, edge_vertex)))
-        num_verts = P.shape[1]
-
-    if not P:
-        return P
-    return P, P.T @ A @ P  # is this ok or should I use the a pure
-    # vertex_vertex relation
-    #   in place of A so that it is guaranteed to be unweighted?
-'''
