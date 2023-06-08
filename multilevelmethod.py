@@ -31,7 +31,8 @@ from aggregation_coarsening import *
 from scipy.sparse.linalg import spsolve
 
 
-def B_TL(graph, x0=0, b=0, smoother=fgs, c_factor=2):
+def B_TL(graph, x0=0, b=0, smoother=fgs, c_factor=2, max_iter=1000,
+         epsilon=1e-6):
     """
     One Iteration of the Two Level Method
 
@@ -64,6 +65,7 @@ def B_TL(graph, x0=0, b=0, smoother=fgs, c_factor=2):
     # "guess" x0, for solving Ax0 = b
     if x0 == 0:
         x0 = np.random.rand(A.shape[1])
+    x = x0
 
     # if no right-hand-side b was given (Ax=b), then make that a random
     # vector as in previous step
@@ -79,24 +81,28 @@ def B_TL(graph, x0=0, b=0, smoother=fgs, c_factor=2):
     delta_0 = delta = npla.norm(r)
     curr_iter = 0
 
-    # project residual to coarse space
-    rc = P.T @ r
+    while curr_iter < max_iter:
+        if delta <= epsilon * delta_0:
+            return x, curr_iter, delta_0, delta
+        # project residual to coarse space
+        rc = P.T @ r
 
-    # solve for xc, x for coarse level Ac
-    xc = spsolve(Ac, rc)
+        # solve for xc, x for coarse level Ac
+        xc = spsolve(Ac, rc)
 
-    # compute x1:
-    x1 = x0 + P @ xc
+        # compute x1:
+        x1 = x0 + P @ xc
 
-    # solve for xTL with smoother
-    xTL, itercount, delta_0, delta = smoother(A, b, x1, max_iter=1)
-    return xTL
+        # solve for xTL with smoother
+        x = smoother(A, b, x1, max_iter=1)[0]
+        r = b - A @ x
+        delta = npla.norm(r)
+        curr_iter += 1
 
-    # projection matrix pi
-    # pi = P @ inv(Ac) @ P.T @ A
+    return x, curr_iter, delta_0, delta
 
 
-def B_TL_symmetric(graph, x0=0, b=0, smoother=fgs, c_factor=2):
+def B_TL_symmetric(graph, x0=0, b=0, smoother=fgs, c_factor=2, max_iter=1000, epsilon=1e-6):
     """
     One Iteration of the Symmetric Two Level Method
 
@@ -136,34 +142,48 @@ def B_TL_symmetric(graph, x0=0, b=0, smoother=fgs, c_factor=2):
 
     # if no guess was given, make a vector of random values for initial
     # "guess" x0, for solving Ax0 = b
-    if x0 == 0:
-        x0 = np.random.rand(A.shape[1])
+    if type(x0) == int:
+        if x0 == 0:
+            x0 = np.random.rand(A.shape[1])
 
     # if no right-hand-side b was given (Ax=b), then make that a random
     # vector as in previous step
-    if b == 0:
-        b = np.random.rand(A.shape[0])
+    if type(b) == int:
+        if b == 0:
+            b = np.random.rand(A.shape[0])
 
     # compute P, the vertex_aggregate relation matrix and Ac, the coarsened A
     # such that Ac = P.T @ A @ P
     P, Ac = P_coarse(A, c_factor, modularity_weights=True)
 
-    # solve for x1 with smoother
-    x1 = M(A, b, x0, max_iter=1)[0]
-
+    x=x0
     # compute residual
-    r = b - A @ x1
+    r = b - A @ x0
+    delta_0 = delta = npla.norm(r)
+    curr_iter = 0
 
-    # project residual to coarse space
-    rc = P.T @ r
+    while curr_iter < max_iter:
+        if delta <= epsilon * delta_0:
+            return x, curr_iter, delta_0, delta
+        # solve for x1 with smoother
+        x1 = M(A, b, x0, max_iter=1)[0]
 
-    # solve for xc, x for coarse level Ac
-    xc = spsolve(Ac, rc)
+        # compute residual
+        r = b - A @ x1
 
-    # compute x2:
-    x2 = x0 + P @ xc
+        # project residual to coarse space
+        rc = P.T @ r
 
-    # solve for xTL with smoother
-    xTL, itercount, delta_0, delta = MT(A, b, x2, max_iter=1)
+        # solve for xc, x for coarse level Ac
+        xc = spsolve(Ac, rc)
 
-    return xTL
+        # compute x2:
+        x2 = x0 + P @ xc
+
+        # solve for xTL with smoother
+        x = MT(A, b, x2, max_iter=1)[0]
+        r = b - A @ x
+        delta = npla.norm(r)
+        curr_iter += 1
+
+    return x, curr_iter, delta_0, delta
