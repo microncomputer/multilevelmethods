@@ -91,7 +91,7 @@ def B_TL(graph, x0=0, b=0, smoother=fgs, c_factor=2, max_iter=1000,
         xc = spsolve(Ac, rc)
 
         # compute x1:
-        x1 = x0 + P @ xc
+        x1 = x + P @ xc
 
         # solve for xTL with smoother
         x = smoother(A, b, x1, max_iter=1)[0]
@@ -166,7 +166,7 @@ def B_TL_symmetric(graph, x0=0, b=0, smoother=fgs, c_factor=2, max_iter=1000, ep
         if delta <= epsilon * delta_0:
             return x, curr_iter, delta_0, delta
         # solve for x1 with smoother
-        x1 = M(A, b, x0, max_iter=1)[0]
+        x1 = M(A, b, x, max_iter=1)[0]
 
         # compute residual
         r = b - A @ x1
@@ -178,7 +178,7 @@ def B_TL_symmetric(graph, x0=0, b=0, smoother=fgs, c_factor=2, max_iter=1000, ep
         xc = spsolve(Ac, rc)
 
         # compute x2:
-        x2 = x0 + P @ xc
+        x2 = x + P @ xc
 
         # solve for xTL with smoother
         x = MT(A, b, x2, max_iter=1)[0]
