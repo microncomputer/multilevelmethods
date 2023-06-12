@@ -34,7 +34,7 @@ from scipy.sparse.linalg import spsolve
 def B_TL(graph, x0=0, b=0, smoother=fgs, c_factor=2, max_iter=1000,
          epsilon=1e-6):
     """
-    One Iteration of the Two Level Method
+    Two Level Method
 
     :param graph: The weighted or unweighted vertex-vertex adjacency matrix
         in COO format (or any scipy sparse format, although testing should be
@@ -43,12 +43,17 @@ def B_TL(graph, x0=0, b=0, smoother=fgs, c_factor=2, max_iter=1000,
         be made and used
     :param b: known right hand side of equation Ax = b, if none given,
         random vector of correct size will be used
-    :param smoother: smoother method to use
+    :param smoother: smoother method from iterativemethods.py to use as M.
     :param c_factor: coarsening factor to determine when to stop coarsening.
         It is the ratio of the number of original vertices divided by the number
         in the resulting coarse graph).
-    :return: approximate x solution
+    :param max_iter: maximum number of iterations
+    :param epsilon: tolerance level for how small the residual norm needs to
+
+    :return: x (the approximate solution), iter (number of iterations used),
+        delta_0 (norm of initial residual), and delta (norm of final residual)
     """
+
     assert issubclass(type(graph), (csr, coo))
 
     A = Laplacian(graph)
@@ -102,9 +107,10 @@ def B_TL(graph, x0=0, b=0, smoother=fgs, c_factor=2, max_iter=1000,
     return x, curr_iter, delta_0, delta
 
 
-def B_TL_symmetric(graph, x0=0, b=0, smoother=fgs, c_factor=2, max_iter=1000, epsilon=1e-6):
+def B_TL_symmetric(graph, x0=0, b=0, smoother=fgs, c_factor=2, max_iter=1000,
+                   epsilon=1e-6):
     """
-    One Iteration of the Symmetric Two Level Method
+    Symmetric Two Level Method
 
     :param graph: The weighted or unweighted vertex-vertex adjacency matrix
         in COO format (or any scipy sparse format, although testing should be
@@ -113,12 +119,16 @@ def B_TL_symmetric(graph, x0=0, b=0, smoother=fgs, c_factor=2, max_iter=1000, ep
         be made and used
     :param b: known right hand side of equation Ax = b, if none given,
         random vector of correct size will be used
-    :param smoother: smoother method to use as M. M transpose is determined
-        from choice
+    :param smoother: smoother method from iterativemethods.py to use as M. M
+        transpose is determined from choice
     :param c_factor: coarsening factor to determine when to stop coarsening.
         It is the ratio of the number of original vertices divided by the number
         in the resulting coarse graph).
-    :return: approximate x solution
+    :param max_iter: maximum number of iterations
+    :param epsilon: tolerance level for how small the residual norm needs to
+
+    :return: x (the approximate solution), iter (number of iterations used),
+        delta_0 (norm of initial residual), and delta (norm of final residual)
     """
     assert issubclass(type(graph), (csr, coo))
     assert (smoother == fgs or smoother == L_1), "B_TL_symmetric takes " \
@@ -156,7 +166,7 @@ def B_TL_symmetric(graph, x0=0, b=0, smoother=fgs, c_factor=2, max_iter=1000, ep
     # such that Ac = P.T @ A @ P
     P, Ac = P_coarse(A, c_factor, modularity_weights=True)
 
-    x=x0
+    x = x0
     # compute residual
     r = b - A @ x0
     delta_0 = delta = npla.norm(r)
