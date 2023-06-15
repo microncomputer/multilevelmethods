@@ -29,11 +29,18 @@ def deg(adj_coo):
     return d
 
 
-def Laplacian(A):
+def Laplacian(A, modifiedSPD=False):
     adj = VV(A)
     D = deg(adj)
     L = -adj
     L.setdiag(D)
+
+    # modifiedSPD changes last row and column to zero entries except on its
+    # main diagonal. This matrix A is s.p.d.
+    if modifiedSPD:
+        L[L.shape[0] - 1, :-1] = 0
+        L[:-1, L.shape[0] - 1] = 0
+        L.eliminate_zeros()
     return L
 
 
