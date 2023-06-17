@@ -31,40 +31,36 @@ from aggregation_coarsening import *
 from scipy.sparse.linalg import spsolve
 
 
-def B_TL(graph, x0=0, b=0, smoother=fgs, c_factor=2, max_iter=1000,
-         epsilon=1e-6):
+def B_TL(graph, b=0, x0=0, smoother=fgs, c_factor=2, max_iter=1000,
+         epsilon=1e-6, laplacian=False):
+
     """
     Two Level Method
 
     :param graph: The weighted or unweighted vertex-vertex adjacency matrix
         in COO format (or any scipy sparse format, although testing should be
         done to confirm)
-    :param x0: initial guess. if none given, random vector of correct size will
-        be made and used
     :param b: known right hand side of equation Ax = b, if none given,
         random vector of correct size will be used
+    :param x0: initial guess. if none given, random vector of correct size will
+        be made and used
     :param smoother: smoother method from iterativemethods.py to use as M.
     :param c_factor: coarsening factor to determine when to stop coarsening.
         It is the ratio of the number of original vertices divided by the number
         in the resulting coarse graph).
     :param max_iter: maximum number of iterations
     :param epsilon: tolerance level for how small the residual norm needs to
+    :param laplacian: set to True to use the modified laplacian as in hw 4
 
     :return: x (the approximate solution), iter (number of iterations used),
         delta_0 (norm of initial residual), and delta (norm of final residual)
     """
 
     assert issubclass(type(graph), (csr, coo))
-
-    A = Laplacian(graph)
-
-    # make last row and column zeros to make it invertible, leave diagonal
-    # altering sparsity structure of csr, coo is expensive so ideally this will
-    # be updated someday to use a lil matrix or something else..
-    # must eliminate zeros or they stay in the nonzero data
-    A[A.shape[0] - 1, :-1] = 0
-    A[:-1, A.shape[0] - 1] = 0
-    A.eliminate_zeros()
+    if laplacian:
+        A = Laplacian(graph, modifiedSPD=True)
+    else:
+        A = graph.copy()
 
     # if no guess was given, make a vector of random values for initial
     # "guess" x0, for solving Ax0 = b
@@ -107,18 +103,18 @@ def B_TL(graph, x0=0, b=0, smoother=fgs, c_factor=2, max_iter=1000,
     return x, curr_iter, delta_0, delta
 
 
-def B_TL_symmetric(graph, x0=0, b=0, smoother=fgs, c_factor=2, max_iter=1000,
-                   epsilon=1e-6):
+def B_TL_symmetric(graph, b=0, x0=0,  smoother=fgs, c_factor=2, max_iter=1000,
+                   epsilon=1e-6, laplacian=False):
     """
     Symmetric Two Level Method
 
     :param graph: The weighted or unweighted vertex-vertex adjacency matrix
         in COO format (or any scipy sparse format, although testing should be
         done to confirm)
-    :param x0: initial guess. if none given, random vector of correct size will
-        be made and used
     :param b: known right hand side of equation Ax = b, if none given,
         random vector of correct size will be used
+    :param x0: initial guess. if none given, random vector of correct size will
+        be made and used
     :param smoother: smoother method from iterativemethods.py to use as M. M
         transpose is determined from choice
     :param c_factor: coarsening factor to determine when to stop coarsening.
@@ -126,6 +122,7 @@ def B_TL_symmetric(graph, x0=0, b=0, smoother=fgs, c_factor=2, max_iter=1000,
         in the resulting coarse graph).
     :param max_iter: maximum number of iterations
     :param epsilon: tolerance level for how small the residual norm needs to
+    :param laplacian: set to True to use the modified laplacian as in hw 4
 
     :return: x (the approximate solution), iter (number of iterations used),
         delta_0 (norm of initial residual), and delta (norm of final residual)
@@ -140,15 +137,10 @@ def B_TL_symmetric(graph, x0=0, b=0, smoother=fgs, c_factor=2, max_iter=1000,
     if smoother == fgs:
         MT = bgs
 
-    A = Laplacian(graph)
-
-    # make last row and column zeros to make it invertible, leave diagonal
-    # altering sparsity structure of csr, coo is expensive so ideally this will
-    # be updated someday to use a lil matrix or something else..
-    # must eliminate zeros or they stay in the nonzero data
-    A[A.shape[0] - 1, :-1] = 0
-    A[:-1, A.shape[0] - 1] = 0
-    A.eliminate_zeros()
+    if laplacian:
+        A = Laplacian(graph, modifiedSPD=True)
+    else:
+        A = graph.copy()
 
     # if no guess was given, make a vector of random values for initial
     # "guess" x0, for solving Ax0 = b

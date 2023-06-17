@@ -1,8 +1,9 @@
 from multilevelmethod import *
 from math import sqrt
+from scipy.sparse import diags
 
 
-def PCG(graph, x0=0, b=0, smoother=fgs, c_factor=2, max_iter=1000,
+def PCG(graph, b=0, x0=0, smoother=fgs, c_factor=2, max_iter=1000,
         epsilon=1e-6):
     """
     Preconditioned Conjugate Gradient Method
@@ -25,7 +26,7 @@ def PCG(graph, x0=0, b=0, smoother=fgs, c_factor=2, max_iter=1000,
         delta_0 (norm of initial residual), and delta (norm of final residual)
     """
     # going to just assume the special laplacian was passed in for now
-    A = graph
+    A = graph.copy()
 
     # if no guess was given, make a vector of random values for initial
     # "guess" x0, for solving Ax0 = b
@@ -37,27 +38,34 @@ def PCG(graph, x0=0, b=0, smoother=fgs, c_factor=2, max_iter=1000,
     r = b - A @ x
 
     # precondition
-    # !this computes r again so may be inefficient but i need r
+    # !this(in else statement) computes r again so may be inefficient but i need r
     # in this algorithm and I am not sure if it's worth it to return from
     # smoother
-    r_hat = smoother(A, x, b, 1)[0]
+    d=r_hat=0  #just have to initialize the variables outside of if/else...
+    if smoother == 'diag':
+        d = diags(A.diagonal())
+        r_hat = spsolve(d,b)
+    else:
+        r_hat = smoother(A, b, x, max_iter=1)[0]
 
     delta = delta0 = r_hat.dot(r)
     p = r_hat
     curr_iter = 0
 
-    while(delta > epsilon * delta0 and curr_iter < max_iter):
+    while delta > epsilon * delta0 and curr_iter < max_iter:
         g = A @ p
         alpha = delta / (p.dot(g))
         x = x + alpha * p
         r = r - alpha * g
-        r_hat = smoother(A, r, x, 1)[0]
+        if smoother == 'diag':
+            r_hat = spsolve(d, r)
+        else:
+            r_hat = smoother(A, r, x, max_iter=1)[0]
         delta_old = delta
         delta = r_hat.dot(r)
         beta = delta/delta_old
         p = r_hat + beta * p
         curr_iter += 1
-        print(curr_iter)
 
     return x, curr_iter, delta0, delta
 

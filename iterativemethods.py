@@ -34,7 +34,7 @@ Date: 2023-05-07
 import graphrelations as gr
 import numpy as np
 import numpy.linalg as npla
-from numpy import zeros, sum
+from numpy import zeros, sum, squeeze, asarray
 import scipy.sparse.linalg as la
 from scipy.sparse import triu, tril, csr_matrix, eye, diags
 
@@ -140,7 +140,7 @@ def sgs(A, b, guess, max_iter=1000, epsilon=1e-6):
 
 def L_1(A, b, guess, max_iter=1000, epsilon=1e-6):
     l_1 = sum(abs(A), axis=1)
-    l_1 = csr_matrix(diags(l_1))
+    l_1 = diags(squeeze(asarray(l_1)))
     x = guess.copy()
     r = b - A @ x  # this is the error vector b-Ax
     delta_0 = delta = npla.norm(r)  # size of the error vector

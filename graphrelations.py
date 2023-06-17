@@ -63,7 +63,7 @@ def VV(adj_coo):
     return csr(vv)
 
 
-def EV(adj_coo):
+def EV(adj):
     """
     Convert an adjacency matrix(weighted or not) of an undirected graph in
     COO format to an edge-vertex relation matrix in CSR format.
@@ -73,6 +73,7 @@ def EV(adj_coo):
 
     :return: csr_matrix: The edge-vertex relation matrix in CSR format.
     """
+    adj_coo = adj.copy()
     adj_coo = coo(adj_coo)  # in case it is another type
     adj_coo = triu(adj_coo, k=1)
     num_vertices = adj_coo.shape[0]
